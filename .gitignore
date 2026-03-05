@@ -10,3 +10,7 @@ wheels/
 .venv
 
 .env
+
+/src/kokoro-v1.0.onnx
+/src/voices-v1.0.bin
+/src/__pycache__
