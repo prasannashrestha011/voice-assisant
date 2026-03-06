@@ -9,7 +9,7 @@ load_dotenv()
 
 # ── LLM Setup ─────────────────────────────────────────────────────────────────
 llm = ChatOllama(
-    model="qwen3:4b",
+    model="qwen3.5:2b",
     temperature=0.3,
     think=False,
     device="cuda"
@@ -171,7 +171,7 @@ def build_pipeline() -> StateGraph:
 # ── Entry Point ───────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
-    _transcriber = VoiceTranscriber(model_size="small")
+    _transcriber = VoiceTranscriber(model_size="medium")
     _tts         = TextToSpeech(voice=TTS_VOICE, speed=TTS_SPEED)
 
     pipeline = build_pipeline()
