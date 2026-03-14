@@ -4,6 +4,7 @@ We temporarily disable default audio source to use virtual microphone
 """
 import sounddevice as sd
 import subprocess
+from src.logger.logger import _logger
 
 
 _echo_module_id = None  # track loaded module
@@ -45,10 +46,10 @@ def _setup_echo_cancel() -> str:
     ], capture_output=True, text=True, check=True)
 
     _echo_module_id = result.stdout.strip()
-    print(f"Loaded echo-cancel module (id={_echo_module_id})")
+    _logger.debug(f"Loaded echo-cancel module (id={_echo_module_id})")
 
     subprocess.run(["pactl", "set-default-source", ECHO_CANCEL_SOURCE_NAME], check=True)
-    print(f"Set default source to '{ECHO_CANCEL_SOURCE_NAME}'")
+    _logger.debug(f"Set default source to '{ECHO_CANCEL_SOURCE_NAME}'")
 
     return original_source
 
@@ -59,10 +60,10 @@ def _teardown_echo_cancel(original_source: str):
     if original_source:
         subprocess.run(["pactl", "set-default-source", original_source],
                        capture_output=True)
-        print(f"\nRestored default source to '{original_source}'")
+        _logger.debug(f"\nRestored default source to '{original_source}'")
 
     if _echo_module_id:
         subprocess.run(["pactl", "unload-module", _echo_module_id],
                        capture_output=True)
-        print(f"Unloaded echo-cancel module (id={_echo_module_id})")
+        _logger.debug(f"Unloaded echo-cancel module (id={_echo_module_id})")
         _echo_module_id = None
