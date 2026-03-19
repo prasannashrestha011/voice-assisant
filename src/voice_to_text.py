@@ -46,8 +46,8 @@ class VoiceTranscriber:
         tts=None,
         on_interrupt: Optional[Callable[[], None]] = None,
         model_size: str = "small",
-        vad_threshold: float = 0.5,
-        silence_timeout_s: float = 1.5,
+        vad_threshold: float = 0.6,
+        silence_timeout_s: float = 2.0,
         pre_roll_chunks: int = 8,
         interrupt_speech_chunks: int = 3,
         max_record_s: float = 30.0,
@@ -105,11 +105,19 @@ class VoiceTranscriber:
         return prob >= self.vad_threshold
 
     def _transcribe(self, audio: np.ndarray) -> str:
-        """converts text to speech"""
+        """converts speech to text"""
         with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
             tmp = f.name
         wav.write(tmp, self.sample_rate, (audio * 32767).astype(np.int16))
-        result = self.model.transcribe(tmp, language="en", task="transcribe")
+        result = self.model.transcribe(
+            tmp,
+            language="en",
+            task="transcribe",
+            temperature=0.0,
+            beam_size=5,
+            best_of=5,
+            condition_on_previous_text=False,
+        )
         os.unlink(tmp)
         return result["text"].strip()
     
