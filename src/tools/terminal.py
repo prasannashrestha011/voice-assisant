@@ -2,14 +2,16 @@ import subprocess
 from langchain_core.tools import tool
 
 
-@tool
-def neofetch_tool()->str:
-    """
-    Runs 'neofetch' in the assistant terminal and returns the output as text.
-    """
-
+def neofetch_tool() -> str:
     try:
-        result = subprocess.run(["neofetch", "--stdout"], capture_output=True, text=True)
-        return result.stdout  # must return output as string
+        # Open a new terminal window and run neofetch visually
+        subprocess.Popen([
+            "gnome-terminal", "--",
+            "bash", "-c",
+            "neofetch; echo; echo 'Press Enter to close...'; read"
+        ])
+        return "Opened neofetch in a new terminal window"  # ← short string for LLM to speak
     except FileNotFoundError:
-        print("Neofetch not installed")
+        return "Error: gnome-terminal is not installed"
+    except Exception as e:
+        return f"Error: {e}"

@@ -12,6 +12,7 @@ from .app_helpers import stop_ollama
 from .app_helpers import throttle_tts
 from .text_to_speech import TextToSpeech
 from .voice_to_text import VoiceTranscriber
+from .tools.defition import TOOLS
 
 load_dotenv()
 
@@ -74,7 +75,7 @@ def _flush_leftover(llm: LLM, tts: TextToSpeech, buffer: str) -> None:
 
 def main() -> None:
 	tts = TextToSpeech()
-	llm = LLM()
+	llm = LLM(tools=TOOLS)
 	input_q: queue.Queue[str] = queue.Queue(maxsize=1)
 	stop_ev = threading.Event()
 
