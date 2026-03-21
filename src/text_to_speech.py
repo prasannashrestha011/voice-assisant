@@ -8,6 +8,9 @@ from pathlib import Path
 from kokoro_onnx import Kokoro
 import sounddevice as sd
 
+from src.preferences.services import Services
+from src.utils.cleaner import clean_for_tts
+
 from .logger.logger import _logger
 from .audio.audio_visualizer import visualize
 
@@ -26,9 +29,7 @@ class _PlayJob:
 
 class TextToSpeech:
     def __init__(self):
-        self.voice="af_bella"
-        self.speed=1.0
-        self.lang="en-us"
+        _logger.info(Services.prefs)
         base_path = Path(__file__).parent
         model_path  = base_path / "kokoro-v1.0.onnx"
         voices_path = base_path / "voices-v1.0.bin"
@@ -208,7 +209,13 @@ class TextToSpeech:
 
 
     def synthesize(self,text)->tuple[np.ndarray,int]:
-        sample,sr=self.kokoro.create(text,self.voice,self.speed,self.lang)
+        cleaned_text=clean_for_tts(text)
+        sample, sr = self.kokoro.create(
+            cleaned_text,
+            Services.prefs.voice,  # ← live, reflects changes immediately
+            Services.prefs.speed,
+            Services.prefs.lang,
+        )
         return sample,sr
     def speak(self, sample, sr):
         job = _PlayJob(sample, sr)
@@ -274,8 +281,3 @@ class TextToSpeech:
         self.audio_queue.put(_SHUTDOWN)
         if self.worker_thread.is_alive():
             self.worker_thread.join(timeout=1.0)
-
-if __name__=="__main__":
-    t1=TextToSpeech()
-    t1.exc("Helloworldhowreouafterwinningsuchelection")
-    t1.exc("Banana Banana  BananaBanana")
