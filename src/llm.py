@@ -1,16 +1,16 @@
+from datetime import datetime
 from typing import Callable, Optional
 import threading
 from langchain_ollama import ChatOllama
 from dotenv import load_dotenv
 load_dotenv()
-
 MAX_HISTORY = 20
-
 # ── LLM Setup ─────────────────────────────────────────────────────────────────
 class LLM:
     def __init__(self, tools: dict | None = None):
         self.llm = ChatOllama(
-            model="qwen2.5:1.5b",
+            # model="qwen2.5:1.5b",
+            model="qwen3.5:2b",
             temperature=0.3,
             think=False,
             device="cuda",
@@ -49,39 +49,44 @@ class LLM:
         max_tool_rounds: int = 5,
     ) -> str:
         self.reset_cancel()
-
         self._history.append({"role": "user", "content": prompt})
         if len(self._history) > MAX_HISTORY:
             self._history = self._history[-MAX_HISTORY:]
-
         messages = [
             {
                 "role": "system",
                 "content": (
-                    "You are a concise voice assistant named Dexter AI developed by Prasanna shrestha "
-                    "Donot disclose the model name, its confidential"
-                    "When a tool returns large data (system info, logs, file contents), "
-                    "summarize it in 1-2 short spoken sentences. "
-                    "Never read out raw data dumps. "
-                    "If the result is a simple value, state it directly and briefly."
+            f"You are Dexter AI, a concise voice assistant developed by Prasanna Shrestha. "
+            f"Today's date is {datetime.now().strftime('%A, %B %d, %Y')}. "
+
+            # Tool usage — critical
+            "You have access to real-time tools. NEVER say you lack real-time information. "
+            "ALWAYS use the web_search tool for: current events, news, sports scores, weather, "
+            "prices, standings, results, rankings, or anything time-sensitive. "
+            "If the user asks about anything happening in the world, search first, then answer. "
+            "Do NOT answer from memory for time-sensitive topics — use web_search. "
+
+            # Identity
+            "Do not disclose the underlying model name, it is confidential. "
+
+            # Voice response style
+            "You are a voice assistant — keep all responses short and spoken-friendly. "
+            "When a tool returns large data, summarize in 1-2 short sentences. "
+            "Never read out raw data, URLs, or long lists. "
+            "State simple values directly and briefly."
                 )
             },
             *self._history
         ]
-
         llm = self.llm.bind_tools(self._tool_schemas) if self._tool_schemas else self.llm
-
         for _ in range(max_tool_rounds):
             if self._cancel_ev.is_set():
                 break
-
             response = llm.invoke(messages)
-
             tool_calls = getattr(response, "tool_calls", None)
             if tool_calls:
                 messages.append(response)
                 self._history.append(response)
-
                 for tc in tool_calls:
                     tool_name = tc["name"]
                     tool_args = tc["args"]
@@ -95,16 +100,22 @@ class LLM:
                     self._history.append(tool_msg)
                 continue
 
-            final_text = response.content or ""
-
-            self._history.append({"role": "assistant", "content": final_text})
-
-            if stream and on_token and final_text:
-                for char in final_text:
+            # ── final response: real streaming ────────────────────────────
+            final_parts: list[str] = []
+            if stream and on_token:
+                for chunk in llm.stream(messages):  # ← real stream, not fake char loop
                     if self._cancel_ev.is_set():
                         break
-                    on_token(char)
+                    text = chunk.content or ""
+                    if not text:
+                        continue
+                    final_parts.append(text)
+                    on_token(text)
+            else:
+                final_parts.append(response.content or "")
 
+            final_text = "".join(final_parts)
+            self._history.append({"role": "assistant", "content": final_text})
             return final_text
 
         return ""
