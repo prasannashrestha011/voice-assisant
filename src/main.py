@@ -12,7 +12,7 @@ from .app_helpers import stop_ollama
 from .app_helpers import throttle_tts
 from .text_to_speech import TextToSpeech
 from .voice_to_text import VoiceTranscriber
-from .tools.defition import TOOLS
+from .tools.definition import TOOLS
 
 load_dotenv()
 
